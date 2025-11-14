@@ -19354,7 +19354,7 @@ Potree.Viewer = class PotreeViewer extends THREE.EventDispatcher{
 
 			let imgMenuToggle = document.createElement('img');
 			imgMenuToggle.src = new URL(Potree.resourcePath + '/icons/menu_button.svg').href;
-			imgMenuToggle.onclick = this.toggleSidebar;
+			imgMenuToggle.onclick = this.toggleSidebar.bind(this);
 			imgMenuToggle.classList.add('potree_menu_toggle');
 
 			let imgMapToggle = document.createElement('img');
