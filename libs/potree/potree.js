@@ -17050,6 +17050,9 @@ class PotreeRenderer {
 		}else if(viewer.background === "white"){
 			viewer.renderer.setClearColor(0xFFFFFF, 1);
 			viewer.renderer.clear(true, true, false);
+		}else if(viewer.background === "none"){
+			viewer.renderer.setClearColor(0x000000, 0);
+			viewer.renderer.clear(true, true, false);
 		}else{
 			viewer.renderer.setClearColor(0x000000, 0);
 			viewer.renderer.clear(true, true, false);
@@ -17266,6 +17269,9 @@ class EDLRenderer{
 			viewer.renderer.clear();
 		} else if (viewer.background === 'white') {
 			viewer.renderer.setClearColor(0xFFFFFF, 1);
+			viewer.renderer.clear();
+		} else if (viewer.background === 'none') {
+			viewer.renderer.setClearColor(0x000000, 0);
 			viewer.renderer.clear();
 		} else {
 			viewer.renderer.setClearColor(0x000000, 0);
