@@ -23,9 +23,12 @@
             background: 'black', // Opciones: "skybox", "gradient", "black", "white"
         },
         loading: {
-            // Nodos del octree descargados y decodificados en paralelo (Potree usa 4 por defecto)
-            minParallelNodes: 4,
-            maxParallelNodes: 8,
+            // Nodos del octree descargados y decodificados en paralelo (Potree usa 4 por defecto).
+            // Cada worker LAZ reserva ~112 MB, así que solo se sube en equipos potentes.
+            parallelNodes: 4,
+            parallelNodesHighEnd: 6,
+            // Workers LAZ creados de antemano; el resto se crea bajo demanda
+            prewarmWorkers: 2,
             // Tiempo máximo con el loader visible mientras llega el primer nodo
             firstNodeTimeout: 15000
         },
@@ -116,28 +119,39 @@
     }
 
     /**
-     * Ajusta la concurrencia de carga y precalienta los workers LAZ.
-     * LASLAZWorker.js pesa ~760 KB; crearlo bajo demanda retrasa cada nodo nuevo,
-     * así que se instancian mientras se cargan la GUI y los metadatos.
+     * Ajusta la concurrencia de carga y precalienta algunos workers LAZ.
+     * LASLAZWorker.js pesa ~760 KB y cada instancia reserva ~112 MB de memoria,
+     * por eso se precalientan pocos: demasiados agotan la memoria y el navegador
+     * puede perder el contexto WebGL.
      */
     function configureLoading() {
-        const { minParallelNodes, maxParallelNodes } = CONFIG.loading;
-        const cores = navigator.hardwareConcurrency || minParallelNodes;
-        const parallelNodes = Math.max(minParallelNodes, Math.min(cores, maxParallelNodes));
+        const { parallelNodes, parallelNodesHighEnd, prewarmWorkers } = CONFIG.loading;
+        const memory = navigator.deviceMemory || 4;
+        const cores = navigator.hardwareConcurrency || 4;
+        const highEnd = memory >= 8 && cores >= 8;
 
-        Potree.maxNodesLoading = parallelNodes;
+        Potree.maxNodesLoading = highEnd ? parallelNodesHighEnd : parallelNodes;
 
-        const workerPaths = [
-            `${Potree.scriptPath}/workers/LASLAZWorker.js`,
-            `${Potree.scriptPath}/workers/LASDecoderWorker.js`
-        ];
+        const url = `${Potree.scriptPath}/workers/LASLAZWorker.js`;
         const pool = Potree.workerPool;
-        workerPaths.forEach(url => {
-            pool.workers[url] = pool.workers[url] || [];
-            while (pool.workers[url].length < parallelNodes) {
-                pool.workers[url].push(new Worker(url));
-            }
-        });
+        pool.workers[url] = pool.workers[url] || [];
+        while (pool.workers[url].length < prewarmWorkers) {
+            pool.workers[url].push(new Worker(url));
+        }
+    }
+
+    /**
+     * Si el navegador pierde el contexto WebGL (p. ej. por falta de memoria de GPU),
+     * muestra un aviso en español en lugar de la pantalla de error de Potree.
+     */
+    function handleContextLoss(viewer) {
+        const canvas = viewer.renderer && viewer.renderer.domElement;
+        if (!canvas) return;
+        canvas.addEventListener('webglcontextlost', (event) => {
+            event.preventDefault();
+            showError(`El navegador perdió el contexto gráfico (WebGL), normalmente por falta de memoria de la tarjeta gráfica.<br><br>
+                Cierra otras pestañas o aplicaciones que usen la GPU y pulsa "Reintentar".`);
+        }, false);
     }
 
     /**
@@ -154,6 +168,7 @@
             }
 
             window.viewer = new Potree.Viewer(renderArea);
+            handleContextLoss(viewer);
 
             // Configurar el viewer con las opciones optimizadas
             viewer.setEDLEnabled(CONFIG.viewer.edlEnabled);
