@@ -141,6 +141,24 @@
     }
 
     /**
+     * Hace que el pool de Potree cree los workers LAZ desde laz-worker.js, que reserva
+     * 16 MB por worker en lugar de 112 MB. Potree nunca libera estos workers, así que
+     * esto recorta el pico de memoria de la carga sin cambiar la concurrencia.
+     */
+    function useLightLazWorkers() {
+        const lazUrl = `${Potree.scriptPath}/workers/LASLAZWorker.js`;
+        const pool = Potree.workerPool;
+        const getWorker = pool.getWorker.bind(pool);
+        pool.getWorker = (url) => {
+            if (url === lazUrl) {
+                const idle = pool.workers[url] = pool.workers[url] || [];
+                if (idle.length === 0) idle.push(new Worker('laz-worker.js'));
+            }
+            return getWorker(url);
+        };
+    }
+
+    /**
      * Si el navegador pierde el contexto WebGL (p. ej. por falta de memoria de GPU),
      * muestra un aviso en español en lugar de la pantalla de error de Potree.
      */
@@ -167,6 +185,7 @@
                 throw new Error('Elemento de renderizado no encontrado');
             }
 
+            useLightLazWorkers();
             window.viewer = new Potree.Viewer(renderArea);
             handleContextLoss(viewer);
 
