@@ -17,9 +17,17 @@
         },
         viewer: {
             fov: 60,
-            pointBudget: 1000000, // 1 millón de puntos
+            pointBudget: 1000000, // 1 millón de puntos (escritorio)
+            pointBudgetLowEnd: 500000, // Móviles / equipos con poca memoria
             edlEnabled: true,
             background: 'black', // Opciones: "skybox", "gradient", "black", "white"
+        },
+        loading: {
+            // Nodos del octree descargados y decodificados en paralelo (Potree usa 4 por defecto)
+            minParallelNodes: 4,
+            maxParallelNodes: 8,
+            // Tiempo máximo con el loader visible mientras llega el primer nodo
+            firstNodeTimeout: 15000
         },
         material: {
             pointColorType: 'RGB',
@@ -74,6 +82,41 @@
     }
 
     /**
+     * Detecta equipos de gama baja para reducir el presupuesto de puntos
+     */
+    function isLowEndDevice() {
+        const memory = navigator.deviceMemory || 8;
+        const cores = navigator.hardwareConcurrency || 4;
+        const smallScreen = Math.min(window.screen.width, window.screen.height) < 768;
+        return memory <= 4 || cores <= 2 || smallScreen;
+    }
+
+    /**
+     * Ajusta la concurrencia de carga y precalienta los workers LAZ.
+     * LASLAZWorker.js pesa ~760 KB; crearlo bajo demanda retrasa cada nodo nuevo,
+     * así que se instancian mientras se cargan la GUI y los metadatos.
+     */
+    function configureLoading() {
+        const { minParallelNodes, maxParallelNodes } = CONFIG.loading;
+        const cores = navigator.hardwareConcurrency || minParallelNodes;
+        const parallelNodes = Math.max(minParallelNodes, Math.min(cores, maxParallelNodes));
+
+        Potree.maxNodesLoading = parallelNodes;
+
+        const workerPaths = [
+            `${Potree.scriptPath}/workers/LASLAZWorker.js`,
+            `${Potree.scriptPath}/workers/LASDecoderWorker.js`
+        ];
+        const pool = Potree.workerPool;
+        workerPaths.forEach(url => {
+            pool.workers[url] = pool.workers[url] || [];
+            while (pool.workers[url].length < parallelNodes) {
+                pool.workers[url].push(new Worker(url));
+            }
+        });
+    }
+
+    /**
      * Inicializa y configura el viewer de Potree
      */
     function initializeViewer() {
@@ -91,7 +134,9 @@
             // Configurar el viewer con las opciones optimizadas
             viewer.setEDLEnabled(CONFIG.viewer.edlEnabled);
             viewer.setFOV(CONFIG.viewer.fov);
-            viewer.setPointBudget(CONFIG.viewer.pointBudget);
+            viewer.setPointBudget(isLowEndDevice()
+                ? CONFIG.viewer.pointBudgetLowEnd
+                : CONFIG.viewer.pointBudget);
             viewer.setBackground(CONFIG.viewer.background);
             viewer.setDescription(CONFIG.description);
 
@@ -173,13 +218,35 @@
                         // Ajustar la vista a la nube de puntos
                         viewer.fitToScreen();
 
-                        hideLoader();
-                        resolve(pointcloud);
+                        // Ocultar el loader cuando el nodo raíz ya tiene puntos visibles
+                        waitForFirstNode(pointcloud).then(() => {
+                            hideLoader();
+                            resolve(pointcloud);
+                        });
                     } catch (error) {
                         reject(error);
                     }
                 }
             );
+        });
+    }
+
+    /**
+     * Resuelve cuando el nodo raíz de la nube está cargado (o al vencer el tiempo límite)
+     */
+    function waitForFirstNode(pointcloud) {
+        return new Promise(resolve => {
+            const start = performance.now();
+            const check = () => {
+                const root = pointcloud.pcoGeometry && pointcloud.pcoGeometry.root;
+                const elapsed = performance.now() - start;
+                if ((root && root.loaded) || elapsed > CONFIG.loading.firstNodeTimeout) {
+                    resolve();
+                } else {
+                    requestAnimationFrame(check);
+                }
+            };
+            check();
         });
     }
 
@@ -193,10 +260,11 @@
                 throw new Error('Potree no está cargado. Verifica que las librerías estén correctamente incluidas.');
             }
 
-            // Inicializar componentes en secuencia
+            configureLoading();
             const viewer = initializeViewer();
-            await loadGUI(viewer);
-            await loadPointCloud(viewer);
+
+            // La GUI y la nube de puntos se cargan en paralelo
+            await Promise.all([loadGUI(viewer), loadPointCloud(viewer)]);
 
             console.log('Aplicación inicializada correctamente');
         } catch (error) {

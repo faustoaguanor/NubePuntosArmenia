@@ -13,6 +13,10 @@
 	<link rel="preload" href="libs/jquery/jquery-3.1.1.min.js" as="script">
 	<link rel="preload" href="libs/three.js/build/three.min.js" as="script">
 	<link rel="preload" href="libs/potree/potree.js" as="script">
+	<!-- Metadatos y nodo raíz de la nube: se descargan en paralelo con las librerías -->
+	<link rel="preload" href="pointclouds/indexl/cloud.js" as="fetch" crossorigin>
+	<link rel="preload" href="pointclouds/indexl/data/r/r.hrc" as="fetch" crossorigin>
+	<link rel="preload" href="pointclouds/indexl/data/r/r.laz" as="fetch" crossorigin>
 
 	<title>Vuelo Armenia - Visualización de Nube de Puntos</title>
 
@@ -42,23 +46,23 @@
 		<div id="potree_sidebar_container"></div>
 	</div>
 
-	<!-- Scripts de librerías - Orden de dependencias -->
-	<script src="libs/jquery/jquery-3.1.1.min.js"></script>
-	<script src="libs/spectrum/spectrum.js"></script>
-	<script src="libs/perfect-scrollbar/js/perfect-scrollbar.jquery.js"></script>
-	<script src="libs/jquery-ui/jquery-ui.min.js"></script>
-	<script src="libs/three.js/build/three.min.js"></script>
-	<script src="libs/other/BinaryHeap.js"></script>
-	<script src="libs/tween/tween.min.js"></script>
-	<script src="libs/d3/d3.js"></script>
-	<script src="libs/proj4/proj4.js"></script>
-	<script src="libs/openlayers3/ol.js"></script>
-	<script src="libs/i18next/i18next.js"></script>
-	<script src="libs/jstree/jstree.js"></script>
-	<script src="libs/potree/potree.js"></script>
-	<script src="libs/plasio/js/laslaz.js"></script>
+	<!-- Scripts de librerías - defer mantiene el orden sin bloquear el renderizado -->
+	<script src="libs/jquery/jquery-3.1.1.min.js" defer></script>
+	<script src="libs/spectrum/spectrum.js" defer></script>
+	<script src="libs/perfect-scrollbar/js/perfect-scrollbar.jquery.js" defer></script>
+	<script src="libs/jquery-ui/jquery-ui.min.js" defer></script>
+	<script src="libs/three.js/build/three.min.js" defer></script>
+	<script src="libs/other/BinaryHeap.js" defer></script>
+	<script src="libs/tween/tween.min.js" defer></script>
+	<script src="libs/d3/d3.js" defer></script>
+	<script src="libs/proj4/proj4.js" defer></script>
+	<script src="libs/openlayers3/ol.js" defer></script>
+	<script src="libs/i18next/i18next.js" defer></script>
+	<script src="libs/jstree/jstree.js" defer></script>
+	<script src="libs/potree/potree.js" defer></script>
+	<script src="libs/plasio/js/laslaz.js" defer></script>
 
-	<!-- Script de aplicación - Defer para optimizar carga -->
+	<!-- Script de aplicación - se ejecuta después de las librerías -->
 	<script src="app.js" defer></script>
 </body>
 </html>
