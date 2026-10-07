@@ -161,6 +161,15 @@ body {
     transform: translateY(0);
 }
 
+/* Ayuda de navegación bajo el título */
+.nav-hint {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.85;
+    margin-top: 4px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
 /* Optimizaciones de rendimiento */
 #potree_render_area {
     will-change: transform;
