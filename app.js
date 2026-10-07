@@ -24,11 +24,9 @@
         },
         loading: {
             // Nodos del octree descargados y decodificados en paralelo (Potree usa 4 por defecto).
-            // Cada worker LAZ reserva ~112 MB, así que solo se sube en equipos potentes.
+            // Cada nodo en carga usa un worker LAZ que reserva ~112 MB y Potree nunca los libera,
+            // así que este valor fija el pico de memoria de los workers (~450 MB con 4).
             parallelNodes: 4,
-            parallelNodesHighEnd: 6,
-            // Workers LAZ creados de antemano; el resto se crea bajo demanda
-            prewarmWorkers: 2,
             // Tiempo máximo con el loader visible mientras llega el primer nodo
             firstNodeTimeout: 15000
         },
@@ -85,20 +83,23 @@
     }
 
     /**
-     * Comprueba si el navegador puede crear un contexto WebGL.
-     * Si no puede, three.js falla más adelante con "a is null" / "getExtension".
+     * Comprueba si el navegador puede crear un contexto WebGL con lo que Potree necesita.
+     * Devuelve 'ok', 'no-webgl' o 'no-extensions'.
+     * Potree usa OES_vertex_array_object sin comprobar que exista; si falta (p. ej. Brave
+     * con protección estricta contra huellas digitales) muestra "Potree Encountered An Error".
      */
-    function isWebGLAvailable() {
+    function checkWebGL() {
         try {
             const canvas = document.createElement('canvas');
             const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            if (!gl) return false;
+            if (!gl) return 'no-webgl';
+            const hasVAO = !!gl.getExtension('OES_vertex_array_object');
             // Liberar el contexto de prueba para no consumir uno de los disponibles
             const lose = gl.getExtension('WEBGL_lose_context');
             if (lose) lose.loseContext();
-            return true;
+            return hasVAO ? 'ok' : 'no-extensions';
         } catch (e) {
-            return false;
+            return 'no-webgl';
         }
     }
 
@@ -107,6 +108,11 @@
         • En Firefox revisa en <code>about:config</code> que <code>webgl.disabled</code> sea <code>false</code>.<br>
         • Actualiza los controladores de la tarjeta gráfica o prueba con otro navegador (Chrome, Edge, Firefox).<br>
         • Puedes comprobar el soporte en <a href="https://get.webgl.org" target="_blank" rel="noopener">get.webgl.org</a>.`;
+
+    const WEBGL_EXTENSIONS_ERROR_MESSAGE = `Tu navegador bloqueó funciones de WebGL necesarias para mostrar la nube de puntos.<br><br>
+        • En Brave pulsa el icono del león junto a la barra de direcciones y desactiva "Bloquear huellas digitales" para este sitio (o déjalo en "Estándar"), luego pulsa "Reintentar".<br>
+        • En otros navegadores revisa extensiones de privacidad o anti-huellas que limiten WebGL.<br>
+        • Si el problema sigue, activa la aceleración por hardware o prueba con otro navegador (Chrome, Edge, Firefox).`;
 
     /**
      * Detecta equipos de gama baja para reducir el presupuesto de puntos
@@ -119,25 +125,11 @@
     }
 
     /**
-     * Ajusta la concurrencia de carga y precalienta algunos workers LAZ.
-     * LASLAZWorker.js pesa ~760 KB y cada instancia reserva ~112 MB de memoria,
-     * por eso se precalientan pocos: demasiados agotan la memoria y el navegador
-     * puede perder el contexto WebGL.
+     * Ajusta la concurrencia de carga. Los workers LAZ se crean bajo demanda:
+     * precargarlos solo adelantaba ~112 MB por worker sin acelerar la carga.
      */
     function configureLoading() {
-        const { parallelNodes, parallelNodesHighEnd, prewarmWorkers } = CONFIG.loading;
-        const memory = navigator.deviceMemory || 4;
-        const cores = navigator.hardwareConcurrency || 4;
-        const highEnd = memory >= 8 && cores >= 8;
-
-        Potree.maxNodesLoading = highEnd ? parallelNodesHighEnd : parallelNodes;
-
-        const url = `${Potree.scriptPath}/workers/LASLAZWorker.js`;
-        const pool = Potree.workerPool;
-        pool.workers[url] = pool.workers[url] || [];
-        while (pool.workers[url].length < prewarmWorkers) {
-            pool.workers[url].push(new Worker(url));
-        }
+        Potree.maxNodesLoading = CONFIG.loading.parallelNodes;
     }
 
     /**
@@ -299,8 +291,9 @@
                 throw new Error('Potree no está cargado. Verifica que las librerías estén correctamente incluidas.');
             }
 
-            if (!isWebGLAvailable()) {
-                showError(WEBGL_ERROR_MESSAGE);
+            const webgl = checkWebGL();
+            if (webgl !== 'ok') {
+                showError(webgl === 'no-extensions' ? WEBGL_EXTENSIONS_ERROR_MESSAGE : WEBGL_ERROR_MESSAGE);
                 return;
             }
 
