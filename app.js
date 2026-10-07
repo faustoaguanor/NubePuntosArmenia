@@ -82,6 +82,30 @@
     }
 
     /**
+     * Comprueba si el navegador puede crear un contexto WebGL.
+     * Si no puede, three.js falla más adelante con "a is null" / "getExtension".
+     */
+    function isWebGLAvailable() {
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl) return false;
+            // Liberar el contexto de prueba para no consumir uno de los disponibles
+            const lose = gl.getExtension('WEBGL_lose_context');
+            if (lose) lose.loseContext();
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    const WEBGL_ERROR_MESSAGE = `Tu navegador no pudo iniciar WebGL, necesario para mostrar la nube de puntos.<br><br>
+        • Activa la aceleración por hardware (Ajustes → Sistema → "Usar aceleración por hardware") y reinicia el navegador.<br>
+        • En Firefox revisa en <code>about:config</code> que <code>webgl.disabled</code> sea <code>false</code>.<br>
+        • Actualiza los controladores de la tarjeta gráfica o prueba con otro navegador (Chrome, Edge, Firefox).<br>
+        • Puedes comprobar el soporte en <a href="https://get.webgl.org" target="_blank" rel="noopener">get.webgl.org</a>.`;
+
+    /**
      * Detecta equipos de gama baja para reducir el presupuesto de puntos
      */
     function isLowEndDevice() {
@@ -258,6 +282,11 @@
             // Verificar que Potree esté disponible
             if (typeof Potree === 'undefined') {
                 throw new Error('Potree no está cargado. Verifica que las librerías estén correctamente incluidas.');
+            }
+
+            if (!isWebGLAvailable()) {
+                showError(WEBGL_ERROR_MESSAGE);
+                return;
             }
 
             configureLoading();
