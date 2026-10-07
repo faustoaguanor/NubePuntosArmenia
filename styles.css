@@ -129,6 +129,15 @@ body {
     line-height: 1.6;
 }
 
+.error-content p {
+    text-align: left;
+}
+
+.error-content a,
+.error-content code {
+    color: #8BC34A;
+}
+
 .error-content button {
     background: #f44336;
     color: white;
