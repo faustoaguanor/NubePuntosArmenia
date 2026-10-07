@@ -21,6 +21,11 @@
             pointBudgetLowEnd: 500000, // Móviles / equipos con poca memoria
             edlEnabled: true,
             background: 'black', // Opciones: "skybox", "gradient", "black", "white"
+            // EarthControls: la rueda acerca hacia el punto bajo el cursor y arrastrar desplaza
+            // el terreno. Con OrbitControls cada paso es un % de la distancia al centro de la
+            // nube, así que al acercarse el movimiento se vuelve casi nulo.
+            navigation: 'EarthControls',
+            hint: 'Arrastrar: desplazar · Clic derecho: rotar · Rueda: acercar al cursor · Doble clic: centrar'
         },
         loading: {
             // Nodos del octree descargados y decodificados en paralelo (Potree usa 4 por defecto).
@@ -188,7 +193,8 @@
                 ? CONFIG.viewer.pointBudgetLowEnd
                 : CONFIG.viewer.pointBudget);
             viewer.setBackground(CONFIG.viewer.background);
-            viewer.setDescription(CONFIG.description);
+            viewer.setNavigationMode(Potree[CONFIG.viewer.navigation]);
+            viewer.setDescription(`${CONFIG.description}<div class="nav-hint">${CONFIG.viewer.hint}</div>`);
 
             // Establecer título del documento
             document.title = CONFIG.title;
