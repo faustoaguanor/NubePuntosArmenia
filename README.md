@@ -68,4 +68,4 @@ Las mejoras de carga y compatibilidad están en [CHANGELOG.md](CHANGELOG.md).
 
 ## Licencia
 
-Pendiente de definir. Las librerías de `libs/` conservan sus propias licencias (Potree: BSD 2-Clause, ver `libs/potree/LICENSE`; Cesium: Apache 2.0; etc.).
+El código propio de este repositorio (`index.html`, `app.js`, `styles.css`, `laz-worker.js`) se publica bajo la [licencia MIT](LICENSE). Las librerías de `libs/` conservan sus propias licencias (Potree: BSD 2-Clause, ver `libs/potree/LICENSE`; Cesium: Apache 2.0; etc.). La licencia MIT no cubre los datos de `pointclouds/`.
