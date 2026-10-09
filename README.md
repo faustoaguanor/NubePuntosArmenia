@@ -1,6 +1,6 @@
 # Nube de Puntos Armenia
 
-Visor web en 3D para explorar la nube de puntos del **Vuelo Armenia**: 88 millones de puntos con color real que reproducen en 3D la zona sobrevolada. Permite recorrer el modelo desde el navegador, sin instalar programas, y hacer mediciones de distancias, áreas, alturas y perfiles directamente sobre los puntos.
+Visor web en 3D para explorar la nube de puntos del **Vuelo Armenia**: 88 millones de puntos con color real, obtenidos en un vuelo de dron del Municipio del Distrito Metropolitano de Quito, que reproducen en 3D la zona sobrevolada. Permite recorrer el modelo desde el navegador, sin instalar programas, y hacer mediciones de distancias, áreas, alturas y perfiles directamente sobre los puntos.
 
 El visor está construido sobre [Potree](https://github.com/potree/potree), un motor de código abierto para mostrar nubes de puntos masivas con WebGL. Los datos están convertidos a un octree LAZ, así que el navegador solo descarga el nivel de detalle que hace falta para lo que hay en pantalla. Es un sitio estático publicado en GitHub Pages: no necesita servidor de aplicaciones ni base de datos.
 
@@ -10,11 +10,12 @@ El visor está construido sobre [Potree](https://github.com/potree/potree), un m
 
 | | |
 | --- | --- |
+| Origen | Vuelo de dron del Municipio del Distrito Metropolitano de Quito |
 | Puntos | 88 237 413, con color RGB |
 | Formato | Octree Potree 1.7 (`cloud.js`) con teselas LAZ, generado desde un archivo `pointcloud.las` |
 | Extensión | Unos 2,3 km × 1,6 km |
 | Cota | Entre 2369 y 2651 m |
-| Coordenadas | Proyectadas en metros (X ≈ 503 000 – 505 300, Y ≈ 9 970 360 – 9 971 940); `cloud.js` no declara la proyección |
+| Coordenadas | Proyectadas en metros (X ≈ 503 000 – 505 300, Y ≈ 9 970 360 – 9 971 940). `cloud.js` no declara la proyección; los valores coinciden con TM-Quito (SIRES-DMQ, WGS84), que ubica la nube en torno a 0,26° S, 78,46° O, en el sector de La Armenia (Conocoto) |
 | Ubicación en el repositorio | `pointclouds/indexl/` (unos 376 MB) |
 
 ## Cómo navegar
