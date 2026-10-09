@@ -1,160 +1,101 @@
 # Nube de Puntos Armenia
 
-Aplicación optimizada para la visualización de nubes de puntos 3D usando Potree.
+Visor web en 3D para explorar la nube de puntos del **Vuelo Armenia**: 88 millones de puntos con color real que reproducen en 3D la zona sobrevolada. Permite recorrer el modelo desde el navegador, sin instalar programas, y hacer mediciones de distancias, áreas, alturas y perfiles directamente sobre los puntos.
 
-## Mejoras de Eficiencia y Refactorización
+El visor está construido sobre [Potree](https://github.com/potree/potree), un motor de código abierto para mostrar nubes de puntos masivas con WebGL. Los datos están convertidos a un octree LAZ, así que el navegador solo descarga el nivel de detalle que hace falta para lo que hay en pantalla. Es un sitio estático publicado en GitHub Pages: no necesita servidor de aplicaciones ni base de datos.
 
-### Cambios Implementados
+**Ver en línea:** https://faustoaguanor.github.io/NubePuntosArmenia/
 
-#### 1. **Separación de Responsabilidades**
-- ✅ JavaScript extraído a `app.js` separado
-- ✅ Estilos personalizados en `styles.css`
-- ✅ HTML limpio y semántico
+## Datos
 
-#### 2. **Optimización de Rendimiento**
-- ✅ **Preload de recursos críticos**: CSS y JS principales se precargan
-- ✅ **Defer en script de aplicación**: No bloquea el renderizado inicial
-- ✅ **Configuración centralizada**: Todas las opciones en un objeto CONFIG
-- ✅ **Presupuesto de puntos optimizado**: 1 millón de puntos para balance rendimiento/calidad
+| | |
+| --- | --- |
+| Puntos | 88 237 413, con color RGB |
+| Formato | Octree Potree 1.7 (`cloud.js`) con teselas LAZ, generado desde un archivo `pointcloud.las` |
+| Extensión | Unos 2,3 km × 1,6 km |
+| Cota | Entre 2369 y 2651 m |
+| Coordenadas | Proyectadas en metros (X ≈ 503 000 – 505 300, Y ≈ 9 970 360 – 9 971 940); `cloud.js` no declara la proyección |
+| Ubicación en el repositorio | `pointclouds/indexl/` (unos 376 MB) |
 
-#### 3. **Experiencia de Usuario**
-- ✅ **Loader visual**: Indicador de carga con spinner y barra de progreso
-- ✅ **Mensajes de error amigables**: Interfaz clara cuando algo falla
-- ✅ **Feedback de progreso**: El usuario sabe qué está cargando en cada momento
+## Cómo navegar
 
-#### 4. **Manejo de Errores**
-- ✅ **Try-catch robusto**: Captura errores en todas las etapas de inicialización
-- ✅ **Manejo de promesas**: Control de promesas rechazadas
-- ✅ **Errores globales capturados**: Previene fallos silenciosos
-- ✅ **Mensajes descriptivos**: Errores claros para debugging
+| Acción | Control |
+| --- | --- |
+| Desplazar el terreno | Arrastrar con el botón izquierdo |
+| Rotar la cámara | Arrastrar con el botón derecho |
+| Acercar o alejar hacia el cursor | Rueda del ratón |
+| Centrar en un punto | Doble clic |
 
-#### 5. **Código Limpio**
-- ✅ **Eliminación de duplicados**: Sin código repetido
-- ✅ **Comentarios JSDoc**: Documentación inline de funciones
-- ✅ **Funciones modulares**: Cada función tiene una responsabilidad única
-- ✅ **Patrón IIFE**: Encapsulación y prevención de contaminación del scope global
+La barra lateral de Potree ofrece las herramientas habituales: medición de distancias, áreas y alturas, perfiles, cambio de color de puntos, tamaño de punto y fondo.
 
-#### 6. **SEO y Accesibilidad**
-- ✅ **Meta tags completos**: Descripción, autor, theme-color
-- ✅ **Lang atributo**: Idioma español correctamente especificado
-- ✅ **Título descriptivo**: Mejor para motores de búsqueda
-- ✅ **Prefers-reduced-motion**: Respeta preferencias de animación del usuario
+## Ejecutar en local
 
-#### 7. **Responsive Design**
-- ✅ **Media queries**: Adaptación a móviles y tablets
-- ✅ **Scrollbar personalizada**: Mejor UX en el sidebar
-- ✅ **Alto DPI optimizado**: Soporte para pantallas Retina
+El visor carga archivos con `fetch` y Web Workers, así que **no funciona abriendo `index.html` con doble clic** (`file://`). Hay que servir la carpeta por HTTP:
 
-## Estructura de Archivos
+```bash
+git clone https://github.com/faustoaguanor/NubePuntosArmenia.git
+cd NubePuntosArmenia
+python3 -m http.server 8000
+# abrir http://localhost:8000
+```
+
+También sirve cualquier servidor estático, por ejemplo la extensión Live Server de VS Code (el repositorio la configura en el puerto 5501). El repositorio pesa unos 380 MB porque incluye la nube de puntos.
+
+## Compatibilidad
+
+Funciona en Chrome, Edge, Firefox, Safari y Brave recientes con WebGL y aceleración por hardware activados.
+
+- En equipos con poca memoria o gráfica integrada, abre el **modo ligero**: https://faustoaguanor.github.io/NubePuntosArmenia/?ligero (menos puntos y sin sombreado EDL). Si el navegador se queda sin memoria gráfica, la página cambia sola a este modo.
+- En **Brave**, si el escudo bloquea las huellas digitales en modo estricto, el visor no puede iniciar WebGL y muestra cómo permitirlo para este sitio.
+
+## Estructura del proyecto
 
 ```
 NubePuntosArmenia/
-├── index.html          # HTML limpio y optimizado
-├── app.js              # Lógica de aplicación modular
-├── styles.css          # Estilos personalizados
-├── libs/               # Librerías de terceros
-│   ├── potree/
-│   ├── three.js/
-│   ├── jquery/
-│   └── ...
-└── pointclouds/        # Datos de nubes de puntos
-    └── indexl/
+├── index.html          # Página del visor: carga librerías y precarga el nodo raíz
+├── app.js              # Configuración (objeto CONFIG) e inicialización de Potree
+├── styles.css          # Loader, mensajes de error y ajustes de interfaz
+├── laz-worker.js       # Decodificador LAZ de Potree con menos memoria
+├── libs/               # Potree 1.6 y sus dependencias (three.js, jQuery, OpenLayers, proj4, d3…)
+└── pointclouds/
+    └── indexl/         # Nube de puntos en formato Potree 1.7 (cloud.js + octree LAZ en data/)
 ```
 
 ## Configuración
 
-Puedes personalizar la aplicación editando el objeto `CONFIG` en `app.js`:
+Los parámetros del visor están en el objeto `CONFIG` al inicio de `app.js`: ruta de la nube, presupuesto de puntos, campo de visión, EDL, fondo, modo de navegación, concurrencia de carga, opciones del modo ligero y material de los puntos.
 
-```javascript
-const CONFIG = {
-    title: 'Armenia',
-    description: 'Vuelo Armenia',
-    language: 'es',
-    pointCloud: {
-        path: 'pointclouds/indexl/cloud.js',
-        name: 'indexl'
-    },
-    viewer: {
-        fov: 60,
-        pointBudget: 1000000,
-        edlEnabled: true,
-        background: 'black',
-    },
-    material: {
-        pointColorType: 'RGB',
-        size: 1,
-        pointSizeType: 'ADAPTIVE',
-        shape: 'SQUARE'
-    }
-};
-```
+Para mostrar otra nube, conviértela con [PotreeConverter](https://github.com/potree/PotreeConverter) 1.7 (formato `cloud.js` + octree LAZ), copia la salida dentro de `pointclouds/` y cambia `CONFIG.pointCloud.path` (y la precarga en `index.html`).
 
-## Uso
+## Créditos
 
-1. Abre `index.html` en un navegador web moderno
-2. La aplicación cargará automáticamente mostrando un indicador de progreso
-3. Una vez cargada, podrás interactuar con la nube de puntos
+Este visor existe gracias a estas librerías de código abierto, incluidas en `libs/` con sus archivos de licencia:
 
-### Controles
+| Librería | Uso en el visor | Autoría | Licencia |
+| --- | --- | --- | --- |
+| [Potree](https://github.com/potree/potree) 1.6 | Motor de visualización de nubes de puntos | Markus Schütz | BSD 2-Clause |
+| [three.js](https://threejs.org/) r85 | Renderizado 3D con WebGL | three.js authors | MIT |
+| [laz-perf](https://github.com/hobuinc/laz-perf) (en `potree/workers/LASLAZWorker.js`) | Descompresión de teselas LAZ | Hobu Inc. | Ver su repositorio |
+| [plasio](https://github.com/verma/plasio) (`laslaz.js`) | Lectura de archivos LAS/LAZ | Uday Verma | MIT |
+| [proj4js](https://github.com/proj4js/proj4js) | Transformación de coordenadas | Colaboradores de Proj4js | MIT |
+| [OpenLayers](https://openlayers.org/) 3 | Mapa 2D de ubicación | Colaboradores de OpenLayers | BSD 2-Clause |
+| [D3](https://d3js.org/) 3.5.5 | Gráfico de perfiles de elevación | Michael Bostock | BSD 3-Clause |
+| [jQuery](https://jquery.com/) 3.1.1 y [jQuery UI](https://jqueryui.com/) | Interfaz de la barra lateral | jQuery Foundation | MIT |
+| [jsTree](https://www.jstree.com/) | Árbol de la escena | Ivan Bozhanov | MIT |
+| [Spectrum](https://bgrins.github.io/spectrum/) | Selector de color | Brian Grinstead | MIT |
+| [perfect-scrollbar](https://github.com/mdbootstrap/perfect-scrollbar) 0.6.12 | Barras de desplazamiento | Hyunje Jun | MIT |
+| [i18next](https://www.i18next.com/) 1.8.0 | Traducción de la interfaz | Jan Mühlemann | MIT |
+| [tween.js](https://github.com/tweenjs/tween.js) | Animaciones de cámara | gskinner.com, inc. | MIT |
+| BinaryHeap (`other/BinaryHeap.js`) | Cola de prioridad para cargar nodos | Marijn Haverbeke (*Eloquent JavaScript*) | MIT |
 
-- **Ratón izquierdo**: Rotar cámara
-- **Ratón derecho**: Panorámica
-- **Rueda**: Zoom in/out
-- **Sidebar**: Herramientas de visualización y configuración
+`libs/` también incluye, sin que el visor las cargue, [Cesium](https://cesium.com/) (Cesium Contributors, Apache 2.0), [shapefile](https://github.com/mbostock/shapefile) 0.6.2 (Mike Bostock) y [THREE.MeshLine](https://github.com/spite/THREE.MeshLine) (Jaume Sanchez, MIT), que vienen con la distribución de Potree.
 
-## Beneficios de Rendimiento
-
-### Antes
-- ⚠️ Código duplicado y desorganizado
-- ⚠️ Sin indicadores de carga
-- ⚠️ Sin manejo de errores
-- ⚠️ Scripts bloqueantes
-- ⚠️ Configuración dispersa
-
-### Después
-- ✅ Código modular y mantenible
-- ✅ UX mejorada con loaders
-- ✅ Errores capturados y mostrados claramente
-- ✅ Carga optimizada con preload y defer
-- ✅ Configuración centralizada y documentada
-
-## Métricas de Mejora
-
-- **Mantenibilidad**: +80% (código separado y documentado)
-- **Experiencia de usuario**: +70% (loader, errores amigables)
-- **Performance**: +30% (preload, defer, optimizaciones)
-- **Debugging**: +90% (manejo de errores completo)
-- **SEO**: +60% (meta tags, estructura semántica)
-
-## Compatibilidad
-
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
-## Tecnologías
-
-- **Potree**: Visualización de nubes de puntos
-- **Three.js**: Renderizado 3D WebGL
-- **jQuery**: Manipulación DOM
-- **OpenLayers**: Componentes de mapas
-- **D3.js**: Visualización de datos
-
-## Mejoras Futuras Sugeridas
-
-1. **Service Worker**: Para cache offline
-2. **Lazy loading de librerías**: Cargar solo lo necesario
-3. **Compresión Gzip**: En el servidor
-4. **CDN para librerías**: Reduce tamaño y aprovecha cache del navegador
-5. **WebWorkers**: Para procesamiento en background
-6. **Progressive Web App**: Instalable en dispositivos
+El icono del mapa de Potree proviene de [PotreeViewer](https://github.com/PotreeViewer/PotreeViewer) del SITN (ver `libs/potree/resources/LICENSE`).
 
 ## Licencia
 
-Proyecto de visualización de datos geoespaciales.
+El código propio de este repositorio (`index.html`, `app.js`, `styles.css`, `laz-worker.js`) se publica bajo la [licencia MIT](LICENSE). Las librerías de `libs/` conservan sus propias licencias, listadas en [Créditos](#créditos). La licencia MIT no cubre los datos de `pointclouds/`.
 
----
+## Historial de cambios
 
-**Última actualización**: 2025-11-14
-**Versión**: 2.0.0 (Refactorizada y Optimizada)
+Las mejoras de carga y compatibilidad están en [CHANGELOG.md](CHANGELOG.md).
