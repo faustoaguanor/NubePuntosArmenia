@@ -15,7 +15,7 @@ El visor está construido sobre [Potree](https://github.com/potree/potree), un m
 | Formato | Octree Potree 1.7 (`cloud.js`) con teselas LAZ, generado desde un archivo `pointcloud.las` |
 | Extensión | Unos 2,3 km × 1,6 km |
 | Cota | Entre 2369 y 2651 m |
-| Coordenadas | Proyectadas en metros (X ≈ 503 000 – 505 300, Y ≈ 9 970 360 – 9 971 940). `cloud.js` no declara la proyección; los valores coinciden con TM-Quito (SIRES-DMQ, WGS84), que ubica la nube en torno a 0,26° S, 78,46° O, en el sector de La Armenia (Conocoto) |
+| Coordenadas | Proyectadas en metros (X ≈ 503 000 – 505 300, Y ≈ 9 970 360 – 9 971 940). Sistema TM-Quito (SIRES-DMQ, WGS84), no declarado en `cloud.js`. La nube queda en torno a 0,26° S, 78,46° O, en el sector de La Armenia (Conocoto) |
 | Ubicación en el repositorio | `pointclouds/indexl/` (unos 376 MB) |
 
 ## Cómo navegar
