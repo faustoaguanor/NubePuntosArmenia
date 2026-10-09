@@ -35,6 +35,14 @@
             // Tiempo máximo con el loader visible mientras llega el primer nodo
             firstNodeTimeout: 15000
         },
+        // Modo ligero: se activa con ?ligero en la URL o automáticamente si se pierde el
+        // contexto WebGL. Sin EDL no se crean las texturas de coma flotante (~120 MB de GPU),
+        // que en gráficas integradas (Intel + Mesa) pueden provocar la pérdida del contexto.
+        lite: {
+            param: 'ligero',
+            pointBudget: 500000,
+            parallelNodes: 2
+        },
         material: {
             pointColorType: 'RGB',
             size: 1,
@@ -130,11 +138,20 @@
     }
 
     /**
+     * Indica si la página se abrió en modo ligero (?ligero en la URL)
+     */
+    function isLiteMode() {
+        return new URLSearchParams(window.location.search).has(CONFIG.lite.param);
+    }
+
+    /**
      * Ajusta la concurrencia de carga. Los workers LAZ se crean bajo demanda:
      * precargarlos solo adelantaba ~112 MB por worker sin acelerar la carga.
      */
     function configureLoading() {
-        Potree.maxNodesLoading = CONFIG.loading.parallelNodes;
+        Potree.maxNodesLoading = isLiteMode()
+            ? CONFIG.lite.parallelNodes
+            : CONFIG.loading.parallelNodes;
     }
 
     /**
@@ -157,13 +174,21 @@
 
     /**
      * Si el navegador pierde el contexto WebGL (p. ej. por falta de memoria de GPU),
-     * muestra un aviso en español en lugar de la pantalla de error de Potree.
+     * recarga una vez en modo ligero; si ya estaba en modo ligero, muestra un aviso
+     * en español en lugar de la pantalla de error de Potree.
      */
     function handleContextLoss(viewer) {
         const canvas = viewer.renderer && viewer.renderer.domElement;
         if (!canvas) return;
         canvas.addEventListener('webglcontextlost', (event) => {
             event.preventDefault();
+            if (!isLiteMode()) {
+                console.warn('Contexto WebGL perdido: recargando en modo ligero');
+                const url = new URL(window.location.href);
+                url.searchParams.set(CONFIG.lite.param, '');
+                window.location.replace(url.toString());
+                return;
+            }
             showError(`El navegador perdió el contexto gráfico (WebGL), normalmente por falta de memoria de la tarjeta gráfica.<br><br>
                 Cierra otras pestañas o aplicaciones que usen la GPU y pulsa "Reintentar".`);
         }, false);
@@ -187,14 +212,18 @@
             handleContextLoss(viewer);
 
             // Configurar el viewer con las opciones optimizadas
-            viewer.setEDLEnabled(CONFIG.viewer.edlEnabled);
+            const lite = isLiteMode();
+            viewer.setEDLEnabled(CONFIG.viewer.edlEnabled && !lite);
             viewer.setFOV(CONFIG.viewer.fov);
-            viewer.setPointBudget(isLowEndDevice()
-                ? CONFIG.viewer.pointBudgetLowEnd
-                : CONFIG.viewer.pointBudget);
+            viewer.setPointBudget(lite
+                ? CONFIG.lite.pointBudget
+                : isLowEndDevice()
+                    ? CONFIG.viewer.pointBudgetLowEnd
+                    : CONFIG.viewer.pointBudget);
             viewer.setBackground(CONFIG.viewer.background);
             viewer.setNavigationMode(Potree[CONFIG.viewer.navigation]);
-            viewer.setDescription(`${CONFIG.description}<div class="nav-hint">${CONFIG.viewer.hint}</div>`);
+            const liteNote = lite ? '<div class="nav-hint">Modo ligero: sin sombreado EDL y con menos puntos</div>' : '';
+            viewer.setDescription(`${CONFIG.description}<div class="nav-hint">${CONFIG.viewer.hint}</div>${liteNote}`);
 
             // Establecer título del documento
             document.title = CONFIG.title;
